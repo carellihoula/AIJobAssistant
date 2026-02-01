@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+passlib[argon2]
+python-jose
+python-dotenv
+pdfplumber
+pytesseract
+Pillow
+openai
