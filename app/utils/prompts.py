@@ -1,20 +1,47 @@
 def generate_cv_parsing_prompt(raw_text: str) -> str:
-    
     prompt = f"""
-    You are a CV parser assistant. Extract all information from this CV text into strict JSON:
-    - full_name
-    - email
-    - phone
-    - location
-    - summary
-    - skills (list of strings)
-    - experience (list of objects: company, role, start_date, end_date, description)
-    - education (list of objects: degree, school, start_date, end_date)
+You are a CV parser assistant. 
 
-    Do NOT invent any information. If a field is missing, return null or empty list.
+Your task:
+1. Determine whether the provided text is a CV / resume.
+2. If it is NOT a CV, return STRICT JSON matching this schema:
+{{
+    "is_cv": false,
+    "data": null,
+    "error": "The provided document is not a CV."
+}}
+3. If it IS a CV, return STRICT JSON matching this schema **AND include `"is_cv": true`**:
+{{
+    "is_cv": true,
+    "data": {{
+        "full_name": null,
+        "email": null,
+        "phone": null,
+        "location": null,
+        "summary": null,
+        "skills": [],
+        "experience": [],
+        "education": []
+    }},
+    "error": null
+}}
 
-    EXAMPLE OUTPUT:
-    {{
+Fill in all available information in the `data` object.  
+- full_name  
+- email  
+- phone  
+- location  
+- summary  
+- skills (list of strings)  
+- experience (list of objects: title, company, role, start_date, end_date, description)  
+- education (list of objects: degree, school, start_date, end_date)
+
+Do NOT invent any information. If a field is missing, set it to null or empty list.
+
+EXAMPLE OUTPUT:
+{{
+    "is_cv": true,
+    "data": {{
         "full_name": "Jane Doe",
         "email": "jane.doe@example.com",
         "phone": "+1 555 123 4567",
@@ -23,6 +50,7 @@ def generate_cv_parsing_prompt(raw_text: str) -> str:
         "skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "AWS"],
         "experience": [
             {{
+                "title": "Senior Backend Engineer",
                 "company": "Tech Corp",
                 "role": "Backend Engineer",
                 "start_date": "2021-06",
@@ -38,9 +66,11 @@ def generate_cv_parsing_prompt(raw_text: str) -> str:
                 "end_date": "2020"
             }}
         ]
-    }}
+    }},
+    "error": null
+}}
 
-    CV TEXT TO PARSE:
-    {raw_text}
-    """
+CV TEXT TO PARSE:
+{raw_text}
+"""
     return prompt

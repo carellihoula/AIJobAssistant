@@ -10,7 +10,7 @@ from app.models.cv import CV
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from app.utils.ocr import extract_text_from_pdf, extract_text_from_image
 from app.ai_engine.parser.cv_parser import parse_cv_text
-from app.schemas.cv import CVSchema
+from app.schemas.cv import CVParseResponse, CVSchema
 from app.core.auth import get_current_user
 
 router = APIRouter(
@@ -27,13 +27,23 @@ ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
-@router.post("/upload")
+@router.post("/upload", response_model=CVParseResponse,)
 async def upload_cv(file: UploadFile = File(...), current_user=Depends(get_current_user)):
     """
     Upload a CV file (PDF / JPG / PNG) from web app.
     Extract text and enrich via GPT-4.
     """
-    if not file.filename.lower().endswith(tuple(ALLOWED_EXTENSIONS)):
+    # print("=== DEBUG START ===")
+    # print(f"File object: {file}")
+    # print(f"File.filename: {file.filename}")
+    # print(f"File.content_type: {file.content_type}")
+    
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is missing")
+    extension = Path(file.filename).suffix.lower()
+    print(f'File extension: {extension}')
+
+    if extension not in ALLOWED_EXTENSIONS:
             raise HTTPException(
                 status_code=400,
                 detail=f"Unsupported format. Use: {', '.join(ALLOWED_EXTENSIONS)}"
@@ -61,26 +71,32 @@ async def upload_cv(file: UploadFile = File(...), current_user=Depends(get_curre
     # Enrich via GPT-4
     try:
         cv = enrich_cv_with_llm(raw_text, email=current_user.email)
+        print(f"CV parsing result cano: {cv}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error enriching CV: {str(e)}")
-    
-     # Sauvegarde DB
+
+    # NOT A CV → return JSON directly
+    if not cv.is_cv:
+        # print(f"CV parsing failed or not a CV. {cv}")
+        return cv
+
+    # Valid CV → save to database
     db = SessionLocal()
     db_cv = CV(
         user_id=current_user.id,
         version=1,
         source="ai",
-        data=cv.model_dump()
+        data=cv.data.model_dump()
     )
     db.add(db_cv)
     db.commit()
     db.refresh(db_cv)
 
-    return db_cv.data
+    return cv
 
 
 @router.post("/cv/manual", response_model=CVSchema)
-def create_cv_manually(cv: CVSchema):
+def create_cv_manually(cv: CVSchema, current_user=Depends(get_current_user)):
     """
     Create CV from manual user input.
     """

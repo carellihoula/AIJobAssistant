@@ -24,3 +24,8 @@ class CVSchema(BaseModel):
     skills: List[str] = []
     experiences: List[Experience] = []
     education: List[Education] = []
+
+class CVParseResponse(BaseModel):
+    is_cv: bool
+    data: Optional[CVSchema] = None
+    error: Optional[str] = None

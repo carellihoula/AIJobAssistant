@@ -4,7 +4,7 @@ Receives raw text from PDF/Image OCR and returns structured CVSchema.
 """
 
 import re
-from app.schemas.cv import CVSchema, Experience, Education
+from app.schemas.cv import CVParseResponse, CVSchema, Experience, Education
 from typing import Optional
 import json
 from app.utils.prompts import generate_cv_parsing_prompt
@@ -25,9 +25,9 @@ def _clean_json(text: str) -> str:
     return text.strip()
 
 
-def enrich_cv_with_llm(raw_text: str, email: Optional[str] = None) -> CVSchema:
+def enrich_cv_with_llm(raw_text: str, email: Optional[str] = None) -> CVParseResponse:
     """
-    Call OpenAI GPT-4 to extract structured CV information.
+    Call DEEPSEEK to extract structured CV information.
     """
     prompt = generate_cv_parsing_prompt(raw_text)
 
@@ -43,34 +43,50 @@ def enrich_cv_with_llm(raw_text: str, email: Optional[str] = None) -> CVSchema:
     # Get text output
     ai_output = response.choices[0].message.content
 
-    # 🔍 DEBUG (IMPORTANT)
-    print("===== LLM RAW OUTPUT =====")
-    print(ai_output)
-    print("===== END LLM OUTPUT =====")
+    # # 🔍 DEBUG (IMPORTANT)
+    # print("===== LLM RAW OUTPUT =====")
+    # print(ai_output)
+    # print("===== END LLM OUTPUT =====")
 
     ai_output = _clean_json(ai_output)
 
     # Parse JSON safely
     try:
         ai_json = json.loads(ai_output)
+        print(ai_json)
     except json.JSONDecodeError:
         # fallback: empty CVSchema
-        ai_json = {}
+        return CVParseResponse(
+            is_cv=False,
+            error="Invalid JSON returned by LLM"
+        )
+
+    if not ai_json.get("is_cv"):
+        return CVParseResponse(
+            is_cv=False,
+            error=ai_json.get("error", "Document is not a CV")
+        )
 
     # Build CVSchema object
+    data_json = ai_json.get("data", {})
+
     cv = CVSchema(
-        full_name=ai_json.get("full_name") or "Unknown",
-        email=email or ai_json.get("email"),
-        phone=ai_json.get("phone"),
-        location=ai_json.get("location"),
-        summary=ai_json.get("summary"),
-        skills=ai_json.get("skills", []),
+        full_name=data_json.get("full_name"),
+        email=email or data_json.get("email"),
+        phone=data_json.get("phone"),
+        location=data_json.get("location"),
+        summary=data_json.get("summary"),
+        skills=data_json.get("skills", []),
         experiences=[
-            Experience(**exp) for exp in ai_json.get("experience", [])
+            Experience(**exp) for exp in data_json.get("experience", [])
         ],
         education=[
-            Education(**edu) for edu in ai_json.get("education", [])
+            Education(**edu) for edu in data_json.get("education", [])
         ]
     )
 
-    return cv
+    return CVParseResponse(
+        is_cv=True,
+        data=cv
+    )
+
