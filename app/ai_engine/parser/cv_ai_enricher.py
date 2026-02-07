@@ -11,6 +11,7 @@ from app.utils.prompts import generate_cv_parsing_prompt
 from app.core.config import settings
 from openai import OpenAI
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -43,17 +44,17 @@ def enrich_cv_with_llm(raw_text: str, email: Optional[str] = None) -> CVParseRes
     # Get text output
     ai_output = response.choices[0].message.content
 
-    # # 🔍 DEBUG (IMPORTANT)
-    # print("===== LLM RAW OUTPUT =====")
-    # print(ai_output)
-    # print("===== END LLM OUTPUT =====")
+    # DEBUG
+    # logging.info("===== LLM RAW OUTPUT =====")
+    # logging.info(ai_output)
+    # logging.info("===== END LLM OUTPUT =====")
 
     ai_output = _clean_json(ai_output)
 
     # Parse JSON safely
     try:
         ai_json = json.loads(ai_output)
-        print(ai_json)
+        # print(ai_json)
     except json.JSONDecodeError:
         # fallback: empty CVSchema
         return CVParseResponse(

@@ -1,6 +1,7 @@
 """
 CV endpoints: upload or manual creation.
 """
+import logging
 import shutil
 from pathlib import Path
 import tempfile
@@ -41,7 +42,7 @@ async def upload_cv(file: UploadFile = File(...), current_user=Depends(get_curre
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename is missing")
     extension = Path(file.filename).suffix.lower()
-    print(f'File extension: {extension}')
+    logging.info(f"Uploading CV: {file.filename} ({extension})")
 
     if extension not in ALLOWED_EXTENSIONS:
             raise HTTPException(
@@ -71,13 +72,13 @@ async def upload_cv(file: UploadFile = File(...), current_user=Depends(get_curre
     # Enrich via GPT-4
     try:
         cv = enrich_cv_with_llm(raw_text, email=current_user.email)
-        print(f"CV parsing result cano: {cv}")
+        # logging.info(f"CV parsing result: {cv}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error enriching CV: {str(e)}")
 
     # NOT A CV → return JSON directly
     if not cv.is_cv:
-        # print(f"CV parsing failed or not a CV. {cv}")
+        # logging.info(f"CV parsing failed or not a CV. {cv}")
         return cv
 
     # Valid CV → save to database
@@ -94,10 +95,51 @@ async def upload_cv(file: UploadFile = File(...), current_user=Depends(get_curre
 
     return cv
 
+@router.post("/manual", response_model=CVSchema)
+def create_cv_manually(
+    cv: CVSchema,
+    current_user=Depends(get_current_user),
+):
+    """
+    Create a CV from manual user input and save it to database.
+    """
 
-@router.post("/cv/manual", response_model=CVSchema)
-def create_cv_manually(cv: CVSchema, current_user=Depends(get_current_user)):
-    """
-    Create CV from manual user input.
-    """
+    # Minimal validation: at least one meaningful field
+    if not any([
+        cv.full_name,
+        cv.email,
+        cv.phone,
+        cv.summary,
+        cv.skills,
+        cv.experiences,
+        cv.education,
+    ]):
+        raise HTTPException(
+            status_code=400,
+            detail="CV cannot be empty"
+        )
+
+    db = SessionLocal()
+
+    # Compute next version
+    last_cv = (
+        db.query(CV)
+        .filter(CV.user_id == current_user.id)
+        .order_by(CV.version.desc())
+        .first()
+    )
+    next_version = (last_cv.version + 1) if last_cv else 1
+
+    db_cv = CV(
+        user_id=current_user.id,
+        version=next_version,
+        source="manual",
+        data=cv.model_dump(),
+    )
+
+    db.add(db_cv)
+    db.commit()
+    db.refresh(db_cv)
+
     return cv
+

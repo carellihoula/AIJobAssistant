@@ -3,12 +3,16 @@ from app.api.router import api_router
 from app.db.session import engine, Base
 from dotenv import load_dotenv
 from app.core.config import settings
+from logging_config import LogLevels, configure_logging
 
 # Load environment variables
 load_dotenv()
 
 # Create all tables (for dev)
 Base.metadata.create_all(bind=engine)
+
+    
+configure_logging(LogLevels.info)
 
 app = FastAPI(title=settings.APP_NAME)
 

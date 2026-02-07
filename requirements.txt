@@ -9,3 +9,5 @@ pdfplumber
 pytesseract
 Pillow
 openai
+requests
+google-auth
