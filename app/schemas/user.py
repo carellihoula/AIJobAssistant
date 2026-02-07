@@ -1,5 +1,6 @@
+from dataclasses import Field
 from uuid import UUID
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -13,3 +14,14 @@ class UserRead(BaseModel):
 
     class Config:
         orm_mode = True
+
+class ForgotPasswordSchema(BaseModel):
+    email: EmailStr
+
+class ResetPasswordSchema(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+class ChangePasswordSchema(BaseModel):
+    old_password: str = Field(..., min_length=8)
+    new_password: str = Field(..., min_length=8)

@@ -6,13 +6,14 @@ import shutil
 from pathlib import Path
 import tempfile
 from app.ai_engine.parser.cv_ai_enricher import enrich_cv_with_llm
-from app.db.session import SessionLocal
+from app.db.session import get_db
 from app.models.cv import CV
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from app.utils.ocr import extract_text_from_pdf, extract_text_from_image
-from app.ai_engine.parser.cv_parser import parse_cv_text
+# from app.ai_engine.parser.cv_parser import parse_cv_text
 from app.schemas.cv import CVParseResponse, CVSchema
 from app.core.auth import get_current_user
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/cvs",
@@ -29,7 +30,7 @@ ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 @router.post("/upload", response_model=CVParseResponse,)
-async def upload_cv(file: UploadFile = File(...), current_user=Depends(get_current_user)):
+async def upload_cv(file: UploadFile = File(...), db: Session = Depends(get_db),current_user=Depends(get_current_user)):
     """
     Upload a CV file (PDF / JPG / PNG) from web app.
     Extract text and enrich via GPT-4.
@@ -82,7 +83,6 @@ async def upload_cv(file: UploadFile = File(...), current_user=Depends(get_curre
         return cv
 
     # Valid CV → save to database
-    db = SessionLocal()
     db_cv = CV(
         user_id=current_user.id,
         version=1,
@@ -98,6 +98,7 @@ async def upload_cv(file: UploadFile = File(...), current_user=Depends(get_curre
 @router.post("/manual", response_model=CVSchema)
 def create_cv_manually(
     cv: CVSchema,
+    db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """
@@ -118,8 +119,6 @@ def create_cv_manually(
             status_code=400,
             detail="CV cannot be empty"
         )
-
-    db = SessionLocal()
 
     # Compute next version
     last_cv = (
