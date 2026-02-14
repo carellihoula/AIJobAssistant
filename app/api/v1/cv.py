@@ -44,3 +44,33 @@ def create_cv_manually(
     """
     return create_manual_cv(cv, current_user, db)
 
+@router.get("/me/latest", response_model=CVSchema)
+def get_my_latest_cv(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    cv = (
+        db.query(CV)
+        .filter(CV.user_id == current_user.id)
+        .order_by(CV.version.desc())
+        .first()
+    )
+
+    if not cv:
+        raise HTTPException(status_code=404, detail="No CV found")
+
+    return cv.data
+
+@router.get("/me", response_model=list[CVSchema])
+def list_my_cvs(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    cvs = (
+        db.query(CV)
+        .filter(CV.user_id == current_user.id)
+        .order_by(CV.version.desc())
+        .all()
+    )
+
+    return [cv.data for cv in cvs]
