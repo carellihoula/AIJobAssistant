@@ -85,3 +85,5 @@ Thumbs.db
 # folder
 uploads/
 ROADMAP.md
+test_smtp.py
+test.db

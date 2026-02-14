@@ -7,7 +7,7 @@ import requests
 from app.core.auth import get_current_user
 from app.core.security import create_access_token
 from app.schemas.user import ChangePasswordSchema, ForgotPasswordSchema, ResetPasswordSchema
-from app.services.auth_service import send_email
+from app.services.email_service import send_email
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse

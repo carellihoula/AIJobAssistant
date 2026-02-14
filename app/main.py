@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.router import api_router
+from app.api.v1.router import api_router
 from app.db.session import engine, Base
 from dotenv import load_dotenv
 from app.core.config import settings
