@@ -11,3 +11,10 @@ Pillow
 openai
 requests
 google-auth
+httpx
+celery
+redis
+jobspy
+xhtml2pdf
+jinja2
+anthropic

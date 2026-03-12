@@ -82,8 +82,11 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# folder
+# folders
 uploads/
 ROADMAP.md
 test_smtp.py
 test.db
+
+temp.txt
+clean_jobs.py

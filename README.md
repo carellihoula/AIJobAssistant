@@ -73,3 +73,10 @@ Then run:
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
+
+## Celery commands
+
+```bash
+celery -A app.celery_app worker --loglevel=info
+celery -A app.celery_app beat --loglevel=info
+```
