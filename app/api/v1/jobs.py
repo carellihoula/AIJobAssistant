@@ -3,6 +3,8 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+import io
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -10,7 +12,10 @@ from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models.job import Job
 from app.models.user import User
+from app.schemas.ats import ATSAnalysisOut
 from app.schemas.job import JobListOut, JobOut, JobStatsOut
+from app.services.ats_service import run_ats_analysis
+from app.services.ats_apply_service import apply_ats_and_generate_pdf
 from app.tasks.jobs_tasks import refresh_jobs_for_user
 
 logger = logging.getLogger(__name__)
@@ -81,6 +86,29 @@ def get_stats(
         avg_score=round(float(avg_score), 1),
         by_source={source: count for source, count in by_source_rows if source},
         by_contract={contract: count for contract, count in by_contract_rows if contract},
+    )
+
+
+@router.get("/{job_id}/ats", response_model=ATSAnalysisOut)
+def analyze_ats(
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return run_ats_analysis(job_id, current_user, db)
+
+
+@router.post("/{job_id}/ats/apply")
+def apply_ats(
+    job_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    pdf_bytes = apply_ats_and_generate_pdf(job_id, current_user, db)
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=cv_ats_{job_id}.pdf"},
     )
 
 

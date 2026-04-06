@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11.5px; color: #1a1a1a; background: #fff; }
+  .page { max-width: 800px; margin: 0 auto; padding: 56px 64px; }
+
+  .sender { margin-bottom: 40px; }
+  .sender .name { font-size: 16px; font-weight: 700; color: #1e3a5f; }
+  .sender .contact { margin-top: 4px; color: #666; font-size: 10.5px; }
+  .sender .contact span { margin-right: 14px; }
+
+  .date { text-align: right; color: #888; font-size: 10.5px; margin-bottom: 32px; }
+
+  .body { line-height: 1.8; white-space: pre-wrap; color: #222; }
+
+  .signature { margin-top: 48px; font-weight: 600; color: #1e3a5f; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  {% if personal %}
+  <div class="sender">
+    {% if personal.full_name %}<div class="name">{{ personal.full_name }}</div>{% endif %}
+    <div class="contact">
+      {% if personal.email %}<span>{{ personal.email }}</span>{% endif %}
+      {% if personal.phone %}<span>{{ personal.phone }}</span>{% endif %}
+      {% if personal.location %}<span>{{ personal.location }}</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="body">{{ content }}</div>
+
+  {% if personal and personal.full_name %}
+  <div class="signature">{{ personal.full_name }}</div>
+  {% endif %}
+
+</div>
+</body>
+</html>
